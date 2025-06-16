@@ -1,49 +1,25 @@
-<% // backend/src/templates/huawei-v2r10-sem_switch-tipo1.ejs %>
-#
-# OWNER OI -- HUAWEI (V2R10) SEM SWITCH
-# TIPO1_<%= codigoUl %>
-#
-clock timezone BRZ minus 03:00:00
-#
 sysname <%= codigoUl %>_RT02
 #
-header shell information "
-**************************************************************************************
-*                                  Alerta                                            *
-*                                                                                    *
-*         O acesso a este sistema eh limitado a usuarios autorizados.                *
-* Todas as informacoes e comunicacoes sobre este sistema sao monitoradas e gravadas. *
-*                                                                                    *
-*          O Acesso sem autorizado estah sujeito as medidas legais.                  *
-*                                                                                    *
-**************************************************************************************
-"
-header login information "
-RTHU**********************************************************************************
-*                                                                                    *
-*                             ########################                               *
-*                             ########################                               *
-*                             ####                                                   *
-*                             ####                                                   *
-*                             ####                                                   *
-*                                                 ####                               *
-*                                                 ####                               *
-*                                                 ####                               *
-*                             ########################                               *
-*                             ########################                               *
-*                                                                                    *
-*                                      Alerta                                        *
-*                                                                                    *
-*           O acesso a este sistema e limitado a usuarios autorizados.               *
-* Todas as informacoes e comunicacoes sobre este sistema sao monitoradas e gravadas. *
-*            O Acesso sem autorizado esta sujeito as medidas legais.                 *
-*                                                                                    *
-**************************************************************************************
-"
+clock timezone BRZ minus 03:00:00
+undo clock summer-time
 #
-drop illegal-mac alarm
+dhcp relay server-group 0 ip 172.31.248.215
+dhcp relay server-group 0 ip 172.31.252.215
+dhcp relay server-detect
+#
+ipsec sa global-duration time-based 900
+ipsec anti-replay window 256
+ipsec invalid-spi-recovery enable
+#
+domain default enable system
+#
+telnet server enable
+#
+port-security enable
 #
 multicast routing-enable
+#
+password-recovery enable
 #
 acl number 2950
 rule 0 permit source 172.31.249.0 0.0.0.255
@@ -90,7 +66,7 @@ rule 65 permit udp source 172.17.32.68 0 source-port eq dns destination 99.244.0
 rule 70 permit ip dscp af31
 rule 75 deny ip
 acl number 3103
-rule 0 permit udp source 99.244.0.0 0.3.255.255 destination 172.16.32.68 0 destination-port eq ntp dscp default
+rule 0 permit udp source 99.244.0.0 0.3.255.255 destination 172.16.32.68 0 destination-port eq ntp
 rule 5 permit udp source 172.16.32.68 0 source-port eq ntp destination 99.244.0.0 0.3.255.255
 rule 10 permit udp source 99.244.0.0 0.3.255.255 destination 172.16.32.69 0 destination-port eq ntp
 rule 15 permit udp source 172.16.32.69 0 source-port eq ntp destination 99.244.0.0 0.3.255.255
@@ -164,228 +140,207 @@ acl number 3104
 rule 0 permit ip dscp default
 rule 5 permit ip
 #
-traffic classifier class-default_in operator or
-if-match dscp default
-traffic classifier class-default operator or
-if-match acl 3104
-traffic classifier sup_in operator or
-if-match dscp af33
-traffic classifier priority_in operator or
-if-match dscp af12 cs2 af21
-traffic classifier priority operator or
-if-match acl 3103
-traffic classifier sup operator or
-if-match acl 3020
-traffic classifier critical_in operator or
-if-match dscp af13 cs3 af31
-traffic classifier critical operator or
-if-match acl 3102
+acl number 3002
+rule 10 permit ip source <%= ipRedeVlan %> 0.0.0.15
+rule 20 permit ip source <%= ipLoopback10 %> 0
 #
-traffic behavior class-default
-queue af bandwidth pct 20
-wred dscp
-wred dscp default low-limit 8 high-limit 24 discard-probability 1
-remark dscp default
-traffic behavior priority
-queue af bandwidth pct 25
-wred dscp
-wred dscp af21 low-limit 595 high-limit 600 discard-probability 1
-remark dscp af21
-traffic behavior traffic_in
-traffic behavior sup
-queue af bandwidth pct 5
-remark dscp af33
-traffic behavior critical
-queue af bandwidth pct 50
-remark dscp af31
+vlan 1
 #
-qos policy CE_DC_IN
-classifier sup_in behavior traffic_in
-classifier critical_in behavior traffic_in
-classifier priority_in behavior traffic_in
-classifier class-default_in behavior traffic_in
-qos policy DC_50-25-25_512K
-classifier sup behavior sup
-classifier critical behavior critical
-classifier priority behavior priority
-classifier class-default behavior class-default
+ike proposal 1
+encryption-algorithm 3des-cbc
+dh group2
 #
-policy-based-route 10 permit node 10
-if-match acl 3010
-apply ip-precedence flash
-policy-based-route 10 permit node 20
-if-match acl 3020
-apply ip-precedence flash
+ike dpd vpn-dpd
 #
-pim
-auto-rp listening enable
-static-rp 172.17.150.33
+ike peer spoke
+proposal 1
+pre-shared-key cipher $c$3$SDsJnPMBuPhJ9t1a7BZXX4MH06iulaVJfe6+DwvDmA==
+remote-address <%= concentrador1 %>
+dpd vpn-dpd
 #
-domain default_admin
+ike peer spoke2
+proposal 1
+pre-shared-key cipher $c$3$W07mH/6hDaBakdtuzoypF3qaY+MOgUxo/m+yeohSKQ==
+remote-address <%= concentrador2 %>
+dpd vpn-dpd
 #
-interface Ethernet0/0/4
-description connected to Brisanet
-ip address <%= ipWanBkp2 %> 255.255.255.252
-pim sm
+ipsec transform-set spoke_transform
+encapsulation-mode tunnel
+transform esp
+esp authentication-algorithm sha1
+esp encryption-algorithm 3des
+#
+ipsec policy vpn_ipsec 1 isakmp
+security acl 3002
+ike-peer spoke primary
+ike-peer spoke2
+transform-set spoke_transform
+sa duration time-based 900
+#
+local-user sysop
+password cipher $c$3$3OMNsa/wUHFsQ49w6rBXdY7CFJtyFOWnuVqcO+l9Hn8JWnB/
+authorization-attribute level 3
+service-type ssh telnet terminal
+local-user sysop_oi
+password cipher @C0ns0rc10
+authorization-attribute level 1
+service-type ssh terminal
+#
+cwmp
+undo cwmp enable
+#
+interface Ethernet0/1
+port link-mode route
+description connected to Elsys LTe module
+ip address 192.168.10.100 255.255.255.0
 igmp enable
 igmp static-group 230.1.1.2
-ipsec efficient-vpn vpngrp
-trust dscp
-qos car outbound cir 512 cbs 32000 pbs 32000 green pass yellow pass red discard
-traffic-policy CE-DC-IN inbound
-traffic-policy DC_50-25-25_512K outbound
+ipsec policy vpn_ipsec
+pim sm
 #
-interface Ethernet0/0/1
-port link-type access
-#
-interface Ethernet0/0/3
-port link-type access
-#
-interface Ethernet0/0/2
-undo portswitch
+interface Ethernet0/2
+port link-mode route
 description connected to router OI - Gi0/0
 ip address 192.168.248.254 255.255.255.252
-pim sm
 igmp enable
 igmp static-group 230.1.1.2
-trust dscp
+pim sm
 #
 interface LoopBack10
 description gerenciamento CEF circuito LTE (secundario)
 ip address <%= ipLoopback10 %> 255.255.255.255
 #
-route-policy LAN_TFL_LOOPBACK10 permit node 10
-if-match ip-prefix LAN_TFL_LOOPBACK10
+ip ip-prefix PERMITE_ESTATICAS index 10 permit 172.16.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 20 permit 172.17.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 30 permit 172.18.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 40 permit 172.24.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 50 permit 172.27.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 60 permit 172.31.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 70 deny 0.0.0.0 0 less-equal 32
 #
-route-policy ROTAS_DC permit node 10
-if-match ip-prefix ROTAS_DC
-#
-route-policy LAN_TFL permit node 10
-if-match ip-prefix LAN_TFL
-#
-ip ip-prefix LAN_TFL_LOOPBACK10 index 10 permit 10.50.128.0 16 less-equal 32
-ip ip-prefix LAN_TFL_LOOPBACK10 index 20 deny 0.0.0.0 0 less-equal 32
-ip ip-prefix LAN_TFL_LOOPBACK10 index 15 permit 99.244.0.0 14 greater-equal 14 less-equal 28
-#
-ip ip-prefix LAN_TFL index 10 permit 99.244.0.0 14 less-equal 28
-ip ip-prefix LAN_TFL index 70 deny 0.0.0.0 0 less-equal 32
-ip ip-prefix ROTAS_DC index 10 permit 172.16.0.0 16 less-equal 32
-ip ip-prefix ROTAS_DC index 20 permit 172.17.0.0 16 less-equal 32
-ip ip-prefix ROTAS_DC index 30 permit 172.18.0.0 16 less-equal 32
-ip ip-prefix ROTAS_DC index 40 permit 172.24.0.0 16 less-equal 32
-ip ip-prefix ROTAS_DC index 50 permit 172.27.0.0 16 less-equal 32
-ip ip-prefix ROTAS_DC index 60 permit 172.31.0.0 16 less-equal 32
-ip ip-prefix ROTAS_DC index 70 permit 200.218.181.0 24 less-equal 32
-ip ip-prefix ROTAS_DC index 80 permit 10.51.127.255 32 
-#
-ip route-static 0.0.0.0 0.0.0.0 <%= ipWanBkp1 %>
+route-policy STATIC_TO_BGP permit node 10
+if-match ip-prefix PERMITE_ESTATICAS
 #
 bgp 64765
 router-id <%= ipLoopback10 %>
+import-route static
+undo synchronization
 timer keepalive 10 hold 30
 peer 192.168.248.253 as-number 65002
-peer <%= ipWanBkp1 %> as-number 64999
-network <%= ipLoopback10 %> 255.255.255.255
-network <%= ipRedeVlan %> 255.255.255.240
+peer 192.168.248.253 route-policy STATIC_TO_BGP export
 #
-ipv4-family unicast
-undo synchronization
-peer 192.168.248.253 enable
-peer <%= ipWanBkp1 %> route-policy LAN_TFL_LOOPBACK10 export
-peer 192.168.248.253 route-policy ROTAS_DC export
+igmp
+#
+pim
+auto-rp enable
+static-rp 172.17.150.33
+#
+nqa entry icmp loopback10
+type icmp-echo
+data-size 32
+destination ip 10.98.0.1
+frequency 300000
+probe count 15
+source ip <%= ipLoopback10 %>
+#
+ip route-static 0.0.0.0 0.0.0.0 192.168.10.254
+ip route-static 10.98.0.1 255.255.255.255 192.168.10.254
+ip route-static <%= concentrador1 %> 255.255.255.255 192.168.10.254
+ip route-static <%= concentrador2 %> 255.255.255.255 192.168.10.254
+ip route-static 172.16.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.17.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.18.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.24.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.27.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.31.0.0 255.255.0.0 192.168.10.254
 #
 snmp-agent
 snmp-agent sys-info contact Sencinet
 snmp-agent sys-info version v3
-snmp-agent group v3 GRP_LOTERICOS authentication acl 2950
-snmp-agent group v3 GRP_LOTERICOS privacy write-view lotericos acl 2950
-snmp-agent group v3 GRP_LOTERICOS authentication write-view lotericos acl 2950
-snmp-agent usm-user v3 lotericos
+snmp-agent mib-view included mib-lotericos iso
 snmp-agent group v3 GRP_LOTERICOS privacy write-view mib-lotericos
-snmp-agent mib-view mib-lotericos include iso
-snmp-agent usm-user v3 lotericos group GRP_LOTERICOS
-snmp-agent usm-user v3 lotericos authentication-mode sha
-Consorcio12#
-Consorcio12#
+snmp-agent group v3 GRP_LOTERICOS write-view VIEW_LOTERICOS acl 2950
+snmp-agent usm-user V3 lotericos GRP_LOTERICOS authentication-mode sha Consorcio12# privacy-mode des lotericos acl 2950
 #
-snmp-agent usm-user v3 lotericos privacy-mode des56
-12#Consorcio
-12#Consorcio
-snmp-agent usm-user v3 lotericos acl 2950
+header login %
+Please input banner content, and quit with the character '"'.
+RTHP**********************************************************************************
+*                                                                                    *
+*                             #########################                              *
+*                             #########################                              *
+*                             ####                                                   *
+*                             ####                                                   *
+*                             ####                                                   *
+*                                                  ####                              *
+*                                                  ####                              *
+*                                                  ####                              *
+*                             #########################                              *
+*                             #########################                              *
+*                                                                                    *
+*                                    Alerta                                          *
+*                                                                                    *
+*           O acesso a este sistema e limitado a usuarios autorizados.               *
+* Todas as informacoes e comunicacoes sobre este sistema sao monitoradas e gravadas. *
+*            O Acesso sem autorizado esta sujeito as medidas legais.                 *
+*                                                                                    *
+**************************************************************************************
+%
 #
-ip route-static 172.31.248.45 255.255.255.255 <%= ipWanBkp1 %>
-ip route-static 172.31.252.45 255.255.255.255 <%= ipWanBkp1 %>
-#
-nqa test-instance icmp loopback10
-test-type icmp
-destination-address ipv4 10.98.0.1
-frequency 300
-probe-count 15
-source-interface LoopBack 10
-start now
-#
-user-interface con 0
-authentication-mode aaa
-#
+tftp client source interface LoopBack10
 info-center enable
 info-center source default channel 2 trap level informational
-info-center loghost source LoopBack10
-info-center loghost 172.31.249.36 transport udp port 20008
-info-center loghost 172.31.253.36 transport udp port 20008
-info-center timestamp log format-date
+info-center loghost source Loopback10
+info-center loghost 172.31.249.36 port 20009
+info-center loghost 172.31.253.36 port 20009
+info-center synchronous
+#
+dhcp enable
+#
+nqa schedule icmp loopback10 start-time now lifetime forever
 #
 ntp-service source-interface LoopBack10
-ntp-service unicast-peer 172.31.248.66 preference
+ntp-service unicast-peer 172.31.248.66
 ntp-service unicast-peer 172.31.252.66
 ntp-service unicast-peer 172.31.248.215
 ntp-service unicast-peer 172.31.252.215
-tftp client-source -i loopback10
 #
-telnet server ena
-stelnet server ena
-hwtacacs-server template fac-tacacs-template
-hwtacacs-server authentication 172.31.248.45
-hwtacacs-server authorization 172.31.252.45 secondary
-hwtacacs-server accounting 172.31.248.45
-hwtacacs-server authentication 172.31.252.45 secondary
-hwtacacs-server authorization 172.31.248.45
-hwtacacs-server accounting 172.31.252.45 secondary
-hwtacacs-server source-ip <%= ipLoopback10 %>
-hwtacacs-server shared-key cipher Consorcio123@
-quit
+ssh server enable
 #
-undo aaa
-Y
+user-interface aux 0
+user-interface tty 13
+modem both
+user-interface vty 0 4
+authentication-mode scheme
+idle-timeout 5 30
 #
-aaa
-authentication-scheme fac-tacacs-scheme
-authentication-mode hwtacacs local
-authorization-scheme fac-tacacs-scheme
-authorization-mode hwtacacs local
-accounting-scheme fac-tacacs-scheme
-accounting interim-fail offline
-domain default_admin
-authentication-scheme fac-tacacs-scheme
-accounting-scheme fac-tacacs-scheme
-authorization-scheme fac-tacacs-scheme
-hwtacacs-server fac-tacacs-template
-local-user sysop_oi password irreversible-cipher $1a$QX>i0IkQ%=$o{oV$QAb"U3EzL/'jb4P4\coU@uCMK(B3R>2QrK5$
-local-user sysop_oi privilege level 1
-y
-local-user sysop_oi service-type terminal ssh
-local-user sysop password cipher PDOc8N93!XNtREFx$
-local-user sysop privilege level 15
-y
-local-user sysop service-type terminal ssh telnet
+hwtacacs scheme fac-svr-tacacs-template
+primary authentication 172.31.248.45 key Consorcio123@
+primary authorization 172.31.248.45 key Consorcio123@
+primary accounting 172.31.248.45 key Consorcio123@
+secondary authentication 172.31.252.45 key Consorcio123@
+secondary authorization 172.31.252.45 key Consorcio123@
+secondary accounting 172.31.252.45 key Consorcio123@
+nas-ip <%= ipLoopback10 %>
+user-name-format without-domain
 #
-quit
+aaa nas-id profile system
 #
-domain default_admin
+domain system
+authentication default hwtacacs-scheme fac-svr-tacacs-template local
+authorization default hwtacacs-scheme fac-svr-tacacs-template local
+accounting default hwtacacs-scheme fac-svr-tacacs-template local
+authorization command hwtacacs-scheme fac-svr-tacacs-template
+access-limit disable
+state active
+idle-cut disable
+self-service-url disable
 #
 user-interface vty 0 4
-authentication-mode aaa
-protocol in ssh
+authentication-mode scheme
+protocol inbound ssh
+idle-timeout 5 30
+#
 quit
 #
-save
-Y
+save f
+#

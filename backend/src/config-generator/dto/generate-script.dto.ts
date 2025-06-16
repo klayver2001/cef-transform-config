@@ -33,8 +33,6 @@ export class GenerateScriptDto {
 
   // --- Campos Condicionais (sem validação) ---
   versaoHuawei?: string;
-  concentradorDmvpn?: string;
-  ipDmvpn?: string;
   concentrador1?: string;
   concentrador2?: string;
 

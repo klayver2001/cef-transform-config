@@ -1,0 +1,179 @@
+!
+hostname <CODIGO UL>_RT02
+!
+aaa new-model
+!
+aaa group server tacacs+ fac-ctc
+server name fac-ctc
+ip tacacs source-interface Loopback10
+!
+aaa group server tacacs+ fac-dtc
+server name fac-dtc
+ip tacacs source-interface Loopback10
+!
+aaa authentication login default group fac-ctc group fac-dtc local
+aaa authentication ppp default local
+aaa authorization config-commands
+aaa authorization exec default group fac-ctc group fac-dtc local
+!
+clock timezone BRZ -3 0
+!
+no ip domain lookup
+ip cef
+no ipv6 cef
+!
+multilink bundle-name authenticated
+!
+username sysop privilege 15 password 0 PDOc8N93!XNtREFx$
+!
+interface Loopback1
+description Loopback Gerencia Caixa
+ip address <%= ipLoopbackPrimario %> 255.255.255.255
+!
+interface Loopback10
+description Loopback Gerencia Caixa
+ip address <%= ipLoopback10 %> 255.255.255.255
+!
+interface Embedded-Service-Engine0/0
+no ip address
+shutdown
+!
+interface GigabitEthernet0/0
+description REDE LAN UL - Terminais
+ip address <%= ipRedeVlan3 %> 255.255.255.240
+ip address <%= ipSwitchRouter %> 255.255.255.248 secondary
+vrrp 1 ip <%= ipRedeVlan1 %>
+vrrp 2 ip <%= ipSwitchVip %>
+ip helper-address 172.31.248.215
+ip helper-address 172.31.252.215
+duplex auto
+speed auto
+no shut
+!
+interface GigabitEthernet0/1
+description Conectado ao device Elsys LTE
+ip address 192.168.10.100 255.255.255.0
+duplex auto
+speed auto
+no shut
+!
+ip route 0.0.0.0 0.0.0.0 192.168.10.254
+ip route 10.98.0.80 255.255.255.255 192.168.10.254
+ip route 10.98.0.81 255.255.255.255 192.168.10.254
+ip route 10.98.0.82 255.255.255.255 192.168.10.254
+ip route 10.98.0.83 255.255.255.255 192.168.10.254
+ip route 10.98.0.84 255.255.255.255 192.168.10.254
+!
+interface Tunnel0
+bandwidth 512
+ip address <INICIO DMVPN><3OCT LOOPBACK 10> 255.248.0.0
+no ip redirects
+ip nhrp map multicast <%= concentrador1 %>
+ip nhrp map <%= dmVpn %> <%= concentrador1 %>
+ip nhrp network-id 1
+ip nhrp holdtime 90
+ip nhrp nhs <%= dmVpn %>
+delay 1000
+tunnel source GigabitEthernet0/1
+tunnel mode gre multipoint
+
+ip prefix-list OUT_TO_BB seq 10 permit <%= ipLoopback10 %>/32
+ip prefix-list OUT_TO_BB seq 20 permit <%= ipRedeVlan %>/28
+ip prefix-list OUT_TO_BB seq 30 permit <%= ipRedeSwitch %>/29
+
+route-map OUT_TO_BB permit 10
+match ip address prefix-list OUT_TO_BB
+
+router bgp 64765
+bgp router-id <%= ipLoopback10 %>
+bgp log-neighbor-changes
+timers bgp 10 30
+neighbor <%= dmVpn %> remote-as 65055
+!
+address-family ipv4
+network <%= ipLoopback10 %> mask 255.255.255.255
+network <%= ipRedeVlan %> mask 255.255.255.240
+network <%= ipRedeSwitch %> mask 255.255.255.248
+neighbor <%= dmVpn %> activate
+neighbor <%= dmVpn %> soft-reconfiguration inbound
+neighbor <%= dmVpn %> route-map OUT_TO_BB out
+exit-address-family
+
+ip sla 1
+icmp-echo 10.98.0.1 source-interface Loopback1
+frequency 5
+ip sla schedule 1 life forever start-time now
+!
+access-list 50 permit 172.31.249.0 0.0.0.255
+access-list 50 permit 172.31.253.0 0.0.0.255
+access-list 50 permit 200.218.181.0 0.0.0.255
+access-list 50 deny any log
+!
+snmp-server group GRP_LOTERICOS v3 auth access 50
+snmp-server view lotericos iso included
+snmp-server user lotericos GRP_LOTERICOS v3 auth sha Consorcio12# priv des lotericos 
+snmp-server source-interface trap loopback 10
+snmp-server usm cisco
+snmp-server manager
+snmp-server source-interface informs l10
+!
+logging trap notifications
+logging origin-id hostname
+
+logging source-interface Loopback10
+logging host 172.31.249.36 transport udp port 5518
+logging host 172.31.253.36 transport udp port 5518
+!
+tacacs server fac-ctc
+address ipv4 172.31.248.45
+key Consorcio123@
+tacacs server fac-dtc
+address ipv4 172.31.252.45
+key Consorcio123@
+access-list 50 permit 172.31.249.0 0.0.0.255
+access-list 50 permit 172.31.253.0 0.0.0.255
+access-list 50 permit 200.218.181.0 0.0.0.255
+access-list 50 deny any log
+!
+control-plane
+!
+banner motd #
+RTCS**********************************************************************************
+*                                                                                    *
+*                             #########################                              *
+*                             #########################                              *
+*                             ####                                                   *
+*                             ####                                                   *
+*                             ####                                                   *
+*                                                  ####                              *
+*                                                  ####                              *
+*                                                  ####                              *
+*                             #########################                              *
+*                             #########################                              *
+*                                                                                    *
+*                                    Alerta                                          *
+*                                                                                    *
+*           O acesso a este sistema e limitado a usuarios autorizados.               *
+* Todas as informacoes e comunicacoes sobre este sistema sao monitoradas e gravadas. *
+*            O Acesso sem autorizado esta sujeito as medidas legais.                 *
+*                                                                                    *
+**************************************************************************************
+^C
+ip tftp source-interface Loopback10
+ip domain-name sencinet.com
+crypto key generate rsa
+How many bits in the modulus [512]:
+!
+line con 0
+line aux 0
+line vty 0 4
+transport input ssh
+!
+scheduler allocate 20000 1000
+ntp source Loopback10
+ntp server 172.31.248.66 prefer
+ntp server 172.31.252.66
+ntp server 172.31.248.215
+ntp server 172.31.252.215
+!
+end
