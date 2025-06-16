@@ -1,0 +1,238 @@
+<% // backend/src/templates/hp-sem_switch-tipo2.ejs %>
+;
+; OWNER OI -- HP SEM SWITCH
+; BGP_<%= codigoUl %>_LinkOI
+;
+sysname <%= codigoUl %>_RT02
+#
+clock timezone BRZ minus 03:00:00
+undo clock summer-time
+#
+dhcp relay server-group 0 ip 172.31.248.215
+dhcp relay server-group 0 ip 172.31.252.215
+dhcp relay server-detect
+#
+ipsec sa global-duration time-based 900
+ipsec anti-replay window 256
+ipsec invalid-spi-recovery enable
+#
+domain default enable system
+#
+telnet server enable
+#
+port-security enable
+#
+multicast routing-enable
+#
+password-recovery enable
+#
+acl number 2950
+rule 0 permit source 172.31.249.0 0.0.0.255
+rule 5 permit source 172.31.253.0 0.0.0.255
+rule 8 permit source 200.218.181.0 0.0.0.255
+rule 10 deny logging
+#
+acl number 3002
+rule 10 permit ip source <%= ipRedeVlan %> 0.0.0.15
+rule 20 permit ip source <%= ipLoopback10 %> 0
+#
+vlan 1
+#
+ike proposal 1
+encryption-algorithm 3des-cbc
+dh group2
+#
+ike dpd vpn-dpd
+#
+ike peer spoke
+proposal 1
+pre-shared-key cipher $c$3$SDsJnPMBuPhJ9t1a7BZXX4MH06iulaVJfe6+DwvDmA==
+remote-address <%= concentrador1 %>
+dpd vpn-dpd
+#
+ike peer spoke2
+proposal 1
+pre-shared-key cipher $c$3$W07mH/6hDaBakdtuzoypF3qaY+MOgUxo/m+yeohSKQ==
+remote-address <%= concentrador2 %>
+dpd vpn-dpd
+#
+ipsec transform-set spoke_transform
+encapsulation-mode tunnel
+transform esp
+esp authentication-algorithm sha1
+esp encryption-algorithm 3des
+#
+ipsec policy vpn_ipsec 1 isakmp
+security acl 3002
+ike-peer spoke primary
+ike-peer spoke2
+transform-set spoke_transform
+sa duration time-based 900
+#
+local-user sysop
+password cipher $c$3$3OMNsa/wUHFsQ49w6rBXdY7CFJtyFOWnuVqcO+l9Hn8JWnB/
+authorization-attribute level 3
+service-type ssh telnet terminal
+local-user sysop_oi
+password cipher @C0ns0rc10
+authorization-attribute level 1
+service-type ssh terminal
+#
+cwmp
+undo cwmp enable
+#
+interface Ethernet0/1
+port link-mode route
+description connected to Elsys LTe module
+ip address 192.168.10.100 255.255.255.0
+igmp enable
+igmp static-group 230.1.1.2
+ipsec policy vpn_ipsec
+pim sm
+#
+interface Ethernet0/2
+port link-mode route
+description connected to router OI - Gi0/0
+ip address 192.168.248.254 255.255.255.252
+igmp enable
+igmp static-group 230.1.1.2
+pim sm
+#
+interface LoopBack10
+description gerenciamento CEF circuito LTE (secundario)
+ip address <%= ipLoopback10 %> 255.255.255.255
+#
+ip ip-prefix PERMITE_ESTATICAS index 10 permit 172.16.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 20 permit 172.17.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 30 permit 172.18.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 40 permit 172.24.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 50 permit 172.27.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 60 permit 172.31.0.0 16 less-equal 32
+ip ip-prefix PERMITE_ESTATICAS index 70 deny 0.0.0.0 0 less-equal 32
+#
+route-policy STATIC_TO_BGP permit node 10
+if-match ip-prefix PERMITE_ESTATICAS
+#
+bgp 64765
+router-id <%= ipLoopback10 %>
+import-route static
+undo synchronization
+timer keepalive 10 hold 30
+peer 192.168.248.253 as-number 65002
+peer 192.168.248.253 route-policy STATIC_TO_BGP export
+#
+igmp
+#
+pim
+auto-rp enable
+static-rp 172.17.150.33
+#
+nqa entry icmp loopback10
+type icmp-echo
+data-size 32
+destination ip 10.98.0.1
+frequency 300000
+probe count 15
+source ip <%= ipLoopback10 %>
+#
+ip route-static 0.0.0.0 0.0.0.0 192.168.10.254
+ip route-static 10.98.0.1 255.255.255.255 192.168.10.254
+ip route-static <%= concentrador1 %> 255.255.255.255 192.168.10.254
+ip route-static <%= concentrador2 %> 255.255.255.255 192.168.10.254
+ip route-static 172.16.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.17.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.18.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.24.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.27.0.0 255.255.0.0 192.168.10.254
+ip route-static 172.31.0.0 255.255.0.0 192.168.10.254
+#
+snmp-agent
+snmp-agent sys-info contact Sencinet
+snmp-agent sys-info version v3
+snmp-agent mib-view included mib-lotericos iso
+snmp-agent group v3 GRP_LOTERICOS privacy write-view mib-lotericos
+snmp-agent group v3 GRP_LOTERICOS write-view VIEW_LOTERICOS acl 2950
+snmp-agent usm-user V3 lotericos GRP_LOTERICOS authentication-mode sha Consorcio12# privacy-mode des lotericos acl 2950
+#
+header login %
+Please input banner content, and quit with the character '"'.
+RTHP**********************************************************************************
+*                                                                                    *
+*                             #########################                              *
+*                             #########################                              *
+*                             ####                                                   *
+*                             ####                                                   *
+*                             ####                                                   *
+*                                                  ####                              *
+*                                                  ####                              *
+*                                                  ####                              *
+*                             #########################                              *
+*                             #########################                              *
+*                                                                                    *
+*                                    Alerta                                          *
+*                                                                                    *
+*           O acesso a este sistema e limitado a usuarios autorizados.               *
+* Todas as informacoes e comunicacoes sobre este sistema sao monitoradas e gravadas. *
+*            O Acesso sem autorizado esta sujeito as medidas legais.                 *
+*                                                                                    *
+**************************************************************************************
+%
+#
+tftp client source interface LoopBack10
+info-center enable
+info-center source default channel 2 trap level informational
+info-center loghost source Loopback10
+info-center loghost 172.31.249.36 port 20009
+info-center loghost 172.31.253.36 port 20009
+info-center synchronous
+#
+dhcp enable
+#
+nqa schedule icmp loopback10 start-time now lifetime forever
+#
+ntp-service source-interface LoopBack10
+ntp-service unicast-peer 172.31.248.66
+ntp-service unicast-peer 172.31.252.66
+ntp-service unicast-peer 172.31.248.215
+ntp-service unicast-peer 172.31.252.215
+#
+ssh server enable
+#
+user-interface aux 0
+user-interface tty 13
+modem both
+user-interface vty 0 4
+authentication-mode scheme
+idle-timeout 5 30
+#
+hwtacacs scheme fac-svr-tacacs-template
+primary authentication 172.31.248.45 key Consorcio123@
+primary authorization 172.31.248.45 key Consorcio123@
+primary accounting 172.31.248.45 key Consorcio123@
+secondary authentication 172.31.252.45 key Consorcio123@
+secondary authorization 172.31.252.45 key Consorcio123@
+secondary accounting 172.31.252.45 key Consorcio123@
+nas-ip <%= ipLoopback10 %>
+user-name-format without-domain
+#
+aaa nas-id profile system
+#
+domain system
+authentication default hwtacacs-scheme fac-svr-tacacs-template local
+authorization default hwtacacs-scheme fac-svr-tacacs-template local
+accounting default hwtacacs-scheme fac-svr-tacacs-template local
+authorization command hwtacacs-scheme fac-svr-tacacs-template
+access-limit disable
+state active
+idle-cut disable
+self-service-url disable
+#
+user-interface vty 0 4
+authentication-mode scheme
+protocol inbound ssh
+idle-timeout 5 30
+#
+quit
+#
+save f
+#

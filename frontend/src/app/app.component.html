@@ -1,0 +1,109 @@
+<div class="container py-5">
+  <div class="row justify-content-center">
+    <div class="col-12 col-lg-10 col-xl-8">
+      <form class="bg-white rounded-4 shadow p-4 p-md-5" [formGroup]="configForm" (ngSubmit)="onSubmit()">
+        <h1 class="mb-4 fw-bold text-primary-emphasis border-bottom pb-3">Parâmetros para Script</h1>
+
+        <!-- Seletores Principais -->
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Selecione o Tipo:</label>
+          <div class="btn-group w-100 mb-2" role="group" aria-label="Topologia">
+            <input type="radio" class="btn-check" formControlName="topologia" name="topologia" id="tipo1" value="Tipo 1" autocomplete="off">
+            <label class="btn btn-outline-primary" for="tipo1">TIPO 1</label>
+            <input type="radio" class="btn-check" formControlName="topologia" name="topologia" id="tipo2" value="Tipo 2" autocomplete="off">
+            <label class="btn btn-outline-primary" for="tipo2">TIPO 2</label>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Modelo do router:</label>
+          <div class="btn-group w-100 mb-2" role="group" aria-label="Fabricante">
+            <input type="radio" class="btn-check" formControlName="fabricante" name="fabricante" id="hp" value="HP" autocomplete="off">
+            <label class="btn btn-outline-info" for="hp">HP</label>
+            <input type="radio" class="btn-check" formControlName="fabricante" name="fabricante" id="huawei" value="Huawei" autocomplete="off">
+            <label class="btn btn-outline-info" for="huawei">HUAWEI</label>
+            <input type="radio" class="btn-check" formControlName="fabricante" name="fabricante" id="cisco" value="Cisco" autocomplete="off">
+            <label class="btn btn-outline-info" for="cisco">CISCO</label>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <label class="form-label fw-semibold">Precisa de switch?</label>
+          <div class="btn-group w-100 mb-2" role="group" aria-label="Com Switch">
+            <input type="radio" class="btn-check" formControlName="comSwitch" name="comSwitch" id="sim" [value]="true" autocomplete="off">
+            <label class="btn btn-outline-warning" for="sim">SIM</label>
+            <input type="radio" class="btn-check" formControlName="comSwitch" name="comSwitch" id="nao" [value]="false" autocomplete="off">
+            <label class="btn btn-outline-warning" for="nao">NÃO</label>
+          </div>
+        </div>
+
+        <!-- Campos Condicionais -->
+        <div *ngIf="getControl('fabricante').value === 'Huawei'" class="mb-4">
+          <label class="form-label fw-semibold">Versão do Huawei:</label>
+          <div class="btn-group w-100 mb-2" role="group" aria-label="Versão Huawei">
+            <input type="radio" class="btn-check" formControlName="versaoHuawei" name="versaoHuawei" id="v2r7" value="V2R7" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="v2r7">V2R7</label>
+            <input type="radio" class="btn-check" formControlName="versaoHuawei" name="versaoHuawei" id="v2r10" value="V2R10" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="v2r10">V2R10</label>
+          </div>
+        </div>
+
+        <div *ngIf="getControl('topologia').value === 'Tipo 2'" class="mb-4">
+          <h2 class="h5 fw-bold text-info mb-3">Tipo do Chip</h2>
+          <div class="btn-group w-100 mb-2" role="group" aria-label="Tipo do Chip">
+            <input type="radio" class="btn-check" formControlName="operadora" name="operadora" id="vivo" value="Vivo" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="vivo">Vivo</label>
+            <input type="radio" class="btn-check" formControlName="operadora" name="operadora" id="tim1" value="Tim 1" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="tim1">Tim 1</label>
+            <input type="radio" class="btn-check" formControlName="operadora" name="operadora" id="tim2" value="Tim 2" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="tim2">Tim 2</label>
+            <input type="radio" class="btn-check" formControlName="operadora" name="operadora" id="arqia" value="Arqia" autocomplete="off">
+            <label class="btn btn-outline-secondary" for="arqia">Arqia</label>
+          </div>
+        </div>
+
+        <!-- Inputs de IP -->
+        <h2 class="h5 fw-bold text-primary-emphasis mt-4 mb-3">Insira os IPs</h2>
+        <div class="row g-3 mb-4">
+          <div class="col-md-4" *ngFor="let field of [
+            {label: 'CÓDIGO UL', name: 'codigoUl'},
+            {label: 'IP LOOPBACK PRIM', name: 'ipLoopbackPrim'},
+            {label: 'IP LOOPBACK 10', name: 'ipLoopback10'},
+            {label: 'IP REDE VLAN', name: 'ipRedeVlan'},
+            {label: 'IP REDE VLAN +1', name: 'ipRedeVlan1'},
+            {label: 'IP REDE VLAN +3', name: 'ipRedeVlan3'},
+            {label: 'IP REDE SWITCH', name: 'ipRedeSwitch'},
+            {label: 'IP SWITCH', name: 'ipSwitch'},
+            {label: 'IP SWITCH ROUTER', name: 'ipSwitchRouter'},
+            {label: 'IP SWITCH VIP', name: 'ipSwitchVip'},
+            {label: 'IP WAN BKP', name: 'ipWanBkp'},
+            {label: 'IP WAN BKP +1', name: 'ipWanBkp1'},
+            {label: 'IP WAN BKP +2', name: 'ipWanBkp2'}
+          ]">
+            <div class="form-floating">
+              <input type="text" class="form-control" [id]="field.name" [formControlName]="field.name" [placeholder]="field.label">
+              <label [for]="field.name">{{ field.label }}</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botão de Ação -->
+        <div class="d-grid mb-4">
+          <button class="btn btn-lg btn-success fw-bold py-3" type="submit" [disabled]="isLoading">
+            <span *ngIf="!isLoading">Gerar Script</span>
+            <span *ngIf="isLoading" class="spinner-border spinner-border-sm"></span>
+          </button>
+        </div>
+
+        <!-- Resultado -->
+        <div *ngIf="generatedScript" class="alert alert-primary border-2 border-primary-subtle rounded-4 shadow-sm mt-4 position-relative">
+          <label class="fw-semibold mb-2">Script Gerado:</label>
+          <pre class="bg-transparent text-dark p-0 m-0 border-0">{{ generatedScript }}</pre>
+          <button type="button" class="btn btn-sm btn-outline-secondary position-absolute top-0 end-0 m-2" (click)="copyToClipboard()" title="Copiar para Área de Transferência">
+            <i class="bi bi-clipboard"></i>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

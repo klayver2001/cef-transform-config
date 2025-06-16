@@ -1,0 +1,224 @@
+<%# Nome do arquivo: huawei-ver-com_switch-tipo2.ejs (apenas como referência) %>
+#
+# OWNER OI -- HUAWEI <%= versaoHuawei %> COM SWITCH
+# VRRP_<%= codigoUl %>_LinkOI
+#
+clock timezone BRZ minus 03:00:00
+#
+sysname <%= codigoUl %>_RT02
+#
+header shell information "
+**************************************************************************************
+*                                  Alerta                                            *
+*                                                                                    *
+*         O acesso a este sistema eh limitado a usuarios autorizados.                *
+* Todas as informacoes e comunicacoes sobre este sistema sao monitoradas e gravadas. *
+*                                                                                    *
+*          O Acesso sem autorizado estah sujeito as medidas legais.                  *
+*                                                                                    *
+**************************************************************************************
+"
+header login information "
+RTHU**********************************************************************************
+*                                                                                    *
+*                             ########################                               *
+*                             ########################                               *
+*                             ####                                                   *
+*                             ####                                                   *
+*                             ####                                                   *
+*                                                 ####                               *
+*                                                 ####                               *
+*                                                 ####                               *
+*                             ########################                               *
+*                             ########################                               *
+*                                                                                    *
+*                                      Alerta                                        *
+*                                                                                    *
+*           O acesso a este sistema e limitado a usuarios autorizados.               *
+* Todas as informacoes e comunicacoes sobre este sistema sao monitoradas e gravadas. *
+*            O Acesso sem autorizacao esta sujeito as medidas legais.                 *
+*                                                                                    *
+**************************************************************************************
+"
+#
+drop illegal-mac alarm
+#
+ipsec authentication sha2 compatible enable
+#
+multicast routing-enable
+#
+dhcp enable
+#
+acl number 2950
+rule 0 permit source 172.31.249.0 0.0.0.255
+rule 5 permit source 172.31.253.0 0.0.0.255
+rule 8 permit source 200.218.181.0 0.0.0.255
+rule 10 deny logging
+#
+domain default_admin
+aaa
+authentication-scheme fac-svr-tacacs-scheme
+accounting-scheme fac-svr-tacacs-scheme
+authorization-scheme fac-svr-tacacs-scheme
+hwtacacs-server fac-svr-tacacs-template
+#
+pim
+auto-rp listening enable
+static-rp 172.17.150.33
+#
+interface Ethernet0/0/4
+undo portswitch
+description connected to Elsys LTe module
+ip address 192.168.10.100 255.255.255.0
+pim sm
+igmp enable
+igmp static-group 230.1.1.2
+trust dscp
+#
+interface Ethernet0/0/1
+port link-type access
+#
+interface Ethernet0/0/2
+undo portswitch
+description Switch Eth0/8
+ip address <%= ipRedeVlan3 %> 255.255.255.240
+ip address <%= ipSwitchRouter %> 255.255.255.248 sub
+vrrp vrid 1 virtual-ip <%= ipRedeVlan1 %>
+vrrp vrid 2 virtual-ip <%= ipSwitchVip %>
+dhcp select relay
+dhcp relay server-select group1
+igmp enable
+igmp static-group 230.1.1.2
+trust dscp
+#
+interface GigabitEthernet0/0/0
+shutdown
+#
+interface LoopBack10
+ip address <%= ipLoopback10 %> 255.255.255.255
+#
+snmp-agent
+snmp-agent sys-info contact Sencinet
+snmp-agent sys-info version v3
+snmp-agent group v3 GRP_LOTERICOS authentication acl 2950
+snmp-agent group v3 GRP_LOTERICOS privacy write-view lotericos acl 2950
+snmp-agent group v3 GRP_LOTERICOS authentication write-view lotericos acl 2950
+snmp-agent usm-user v3 lotericos
+snmp-agent group v3 GRP_LOTERICOS privacy write-view mib-lotericos
+snmp-agent mib-view included lotericos iso
+snmp-agent usm-user v3 lotericos group GRP_LOTERICOS
+snmp-agent usm-user v3 lotericos authentication-mode sha
+Consorcio12#
+Consorcio12#
+#
+snmp-agent usm-user v3 lotericos privacy-mode des56
+12#Consorcio
+12#Consorcio
+snmp-agent usm-user v3 lotericos acl 2950
+#
+ssh client first-time enable
+sftp server enable
+stelnet server enable
+telnet server enable
+#
+ip ip-prefix OUT_TO_BB index 10 permit 99.244.0.0 14 greater-equal 14 less-equal 28
+ip ip-prefix OUT_TO_BB index 20 permit <%= ipLoopback10 %> 32
+ip ip-prefix OUT_TO_BB index 30 permit <%= ipRedeSwitch %> 29
+#
+route-policy OUT_TO_BB permit node 10
+if-match ip-prefix OUT_TO_BB
+#
+interface Tunnel0/0/0
+ip address <%= ipDmvpn %> 255.248.0.0
+tunnel-protocol gre p2mp
+nhrp registration no-unique
+nhrp entry multicast dynamic
+source Ethernet0/0/4
+nhrp registration interval 90
+nhrp network-id 1
+nhrp entry <%= ipDmvpn %> <%= concentradorDmvpn %> register
+#
+bgp 64765
+router-id <%= ipLoopback10 %>
+timer keepalive 10 hold 30
+peer <%= ipDmvpn %> as-number 65055
+#
+ipv4-family unicast
+undo synchronization
+network <%= ipLoopback10 %> 255.255.255.255
+network <%= ipRedeVlan %> 255.255.255.240
+network <%= ipRedeSwitch %> 255.255.255.248
+peer <%= ipDmvpn %> enable
+peer <%= ipDmvpn %> route-policy OUT_TO_BB export
+#
+ip route-static 10.98.0.80 255.255.255.255 192.168.10.254
+ip route-static 10.98.0.81 255.255.255.255 192.168.10.254
+ip route-static 10.98.0.82 255.255.255.255 192.168.10.254
+ip route-static 10.98.0.83 255.255.255.255 192.168.10.254
+#
+nqa test-instance icmp loopback10
+test-type icmp
+destination-address ipv4 10.98.0.1
+frequency 300
+probe-count 15
+source-interface LoopBack 10
+start now
+#
+nqa test-instance icmp loopback_switch
+test-type icmp
+destination-address ipv4 10.98.0.1
+source-address ipv4 <%= ipSwitchRouter %>
+frequency 300
+probe-count 15
+start now
+#
+user-interface con 0
+authentication-mode aaa
+#
+ntp-service source-interface LoopBack10
+ntp-service unicast-peer 172.31.248.66 preference
+ntp-service unicast-peer 172.31.252.66
+ntp-service unicast-peer 172.31.248.215
+ntp-service unicast-peer 172.31.252.215
+#
+info-center enable
+info-center source default channel 2 trap level informational
+info-center loghost source LoopBack10
+info-center loghost 172.31.249.36 transport udp port 20008
+info-center loghost 172.31.253.36 transport udp port 20008
+info-center timestamp log format-date
+tftp client-source -i loopback10
+#
+set default tftp-directory flash:
+tftp server enable
+#
+<%- verhuawei1 %>
+hwtacacs-server source-ip <%= ipLoopback10 %>
+#
+quit
+#
+undo aaa
+Y
+#
+aaa
+undo local-aaa-user password policy administrator
+authentication-scheme fac-tacacs-scheme
+authentication-mode hwtacacs local
+authorization-scheme fac-tacacs-scheme
+authorization-mode hwtacacs local
+accounting-scheme fac-tacacs-scheme
+accounting interim-fail offline
+domain default_admin
+authentication-scheme fac-tacacs-scheme
+accounting-scheme fac-tacacs-scheme
+authorization-scheme fac-tacacs-scheme
+hwtacacs-server fac-tacacs-template
+<%- verhuawei2 %>
+#
+user-interface vty 0 4
+authentication-mode aaa
+protocol in ssh
+quit
+#
+save
+Y

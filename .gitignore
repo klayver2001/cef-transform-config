@@ -1,0 +1,25 @@
+# Dependências
+*node_modules/
+
+# Builds
+dist/
+build/
+**/dist/
+
+# Logs
+*.log
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDEs e editores
+.vscode/
+.idea/
+
+# Variáveis de ambiente
+.env
+.env.*
+
+# Angular
+.angular/
