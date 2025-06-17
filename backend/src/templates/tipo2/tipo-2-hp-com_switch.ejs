@@ -154,13 +154,13 @@ ike dpd vpn-dpd
 ike peer spoke
 proposal 1
 pre-shared-key cipher $c$3$SDsJnPMBuPhJ9t1a7BZXX4MH06iulaVJfe6+DwvDmA==
-remote-address <%= concentrador1 %>
+remote-address <%= concentradorDmvpn %>
 dpd vpn-dpd
 #
 ike peer spoke2
 proposal 1
 pre-shared-key cipher $c$3$W07mH/6hDaBakdtuzoypF3qaY+MOgUxo/m+yeohSKQ==
-remote-address <%= concentrador2 %>
+remote-address <%= concentradorDmvpn %>
 dpd vpn-dpd
 #
 ipsec transform-set spoke_transform
@@ -282,8 +282,7 @@ source ip <%= ipSwitchRouter %>
 #
 ip route-static 0.0.0.0 0.0.0.0 192.168.10.254
 ip route-static 10.98.0.1 255.255.255.255 192.168.10.254
-ip route-static <%= concentrador1 %> 255.255.255.255 192.168.10.254
-ip route-static <%= concentrador2 %> 255.255.255.255 192.168.10.254
+ip route-static <%= concentradorDmvpn %> 255.255.255.255 192.168.10.254
 ip route-static 172.16.0.0 255.255.0.0 192.168.10.254
 ip route-static 172.17.0.0 255.255.0.0 192.168.10.254
 ip route-static 172.18.0.0 255.255.0.0 192.168.10.254

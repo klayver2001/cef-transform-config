@@ -60,6 +60,18 @@
             <input type="radio" class="btn-check" formControlName="operadora" name="operadora" id="arqia" value="Arqia" autocomplete="off">
             <label class="btn btn-outline-secondary" for="arqia">Arqia</label>
           </div>
+
+          <!-- Consulta de IPs -->
+          <div class="row g-2 mt-2 align-items-end">
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">dmvpn</label>
+              <input type="text" class="form-control form-control-sm text-secondary bg-light border-0" [value]="dmvpnConsulta" readonly tabindex="-1">
+            </div>
+            <div class="col-6 col-md-3">
+              <label class="form-label small text-secondary">concentrador</label>
+              <input type="text" class="form-control form-control-sm text-secondary bg-light border-0" [value]="concentradorConsulta" readonly tabindex="-1">
+            </div>
+          </div>
         </div>
 
         <!-- Inputs de IP -->

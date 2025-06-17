@@ -34,11 +34,13 @@ export class ConfigGeneratorService {
         if (templateName.startsWith('huawei-v') && templateName.includes('tipo2')) {
              const baseTemplateName = `huawei-ver-${dto.comSwitch ? 'com' : 'sem'}_switch-tipo2.ejs`;
              const baseTemplatePath = path.join(__dirname, '..', 'templates', baseTemplateName);
-             const script = await ejs.renderFile(baseTemplatePath, templateData);
+             let script = await ejs.renderFile(baseTemplatePath, templateData);
+             script = this.replaceDmvpnComLoopback10(script, templateData);
              return script;
         }
 
-        const script = await ejs.renderFile(templatePath, templateData);
+        let script = await ejs.renderFile(templatePath, templateData);
+        script = this.replaceDmvpnComLoopback10(script, templateData);
         return script;
     } catch (error) {
         console.error("Erro ao renderizar o template EJS:", error);
@@ -59,7 +61,7 @@ export class ConfigGeneratorService {
     const data: any = { ...dto };
 
     if (dto.fabricante === 'Cisco' && dto.topologia === 'Tipo 2') {
-      data.nhrpMap = `${dto.ipDmvpn} ${dto.concentradorDmvpn}`;
+      data.nhrpMap = `${data.ipDmvpn} ${data.concentradorDmvpn}`;
     }
 
     // Reintroduz a lógica para os blocos versionados do Huawei
@@ -124,5 +126,19 @@ ike proposal 10
     }
     
     return { verhuawei1: '', verhuawei2: '' };
+  }
+
+  /**
+   * Substitui o placeholder <DMVPN_COM_LOOPBACK10> pelo IP DMVPN com os dois últimos octetos do ipLoopback10
+   */
+  private replaceDmvpnComLoopback10(script: string, data: any): string {
+    if (!data.ipDmvpn || !data.ipLoopback10) return script;
+    const dmvpnParts = data.ipDmvpn.split('.');
+    const loopbackParts = data.ipLoopback10.split('.');
+    if (dmvpnParts.length === 4 && loopbackParts.length === 4) {
+      const ipCombinado = `${dmvpnParts[0]}.${dmvpnParts[1]}.${loopbackParts[2]}.${loopbackParts[3]}`;
+      return script.replace(/<DMVPN_COM_LOOPBACK10>/g, ipCombinado);
+    }
+    return script;
   }
 }

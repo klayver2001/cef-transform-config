@@ -15,6 +15,18 @@ export class AppComponent implements OnInit, OnDestroy {
   generatedScript: string | null = null;
   isLoading = false;
 
+  // Tabela de IPs por operadora
+  readonly operadoraInfo: any = {
+    'Tim 1': { dmvpn: '41.50.255.81', concentrador: '10.98.0.81' },
+    'Tim 2': { dmvpn: '42.50.255.82', concentrador: '10.98.0.82' },
+    'Arqia': { dmvpn: '18.50.255.83', concentrador: '10.98.0.83' },
+    'Vivo': { dmvpn: '15.50.255.80', concentrador: '10.98.0.80' },
+  };
+
+  dmvpnConsulta: string = '';
+  concentradorConsulta: string = '';
+  dmvpnComLoopback10: string = '';
+
   private ipv4Pattern = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;
   private subscriptions = new Subscription();
 
@@ -48,10 +60,12 @@ export class AppComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const valueChangesSubscription = this.configForm.valueChanges.subscribe(() => {
         this.manageConditionalValidators();
+        this.atualizarConsultaDMVPN();
     });
     this.subscriptions.add(valueChangesSubscription);
     // Chamada inicial para configurar validadores
     this.manageConditionalValidators();
+    this.atualizarConsultaDMVPN();
   }
 
   ngOnDestroy(): void {
@@ -89,16 +103,11 @@ export class AppComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.generatedScript = null;
 
-    // Monta explicitamente o DTO aceito pelo backend
-    const form = this.configForm.value;
+    // Envia todos os campos do formulário para o backend
     const dto: GenerateScriptDto = {
-      fabricante: form.fabricante,
-      topologia: form.topologia,
-      comSwitch: form.comSwitch,
-      codigoUl: form.codigoUl,
-      versaoHuawei: form.versaoHuawei || undefined,
-      operadora: form.operadora || undefined,
+      ...this.configForm.value
     };
+    // Futuramente, pode-se filtrar campos conforme a topologia/modelo/router
 
     this.configService.generateScript(dto).subscribe({
       next: (script) => {
@@ -123,5 +132,34 @@ export class AppComponent implements OnInit, OnDestroy {
         console.error('Falha ao copiar: ', err);
         this.snackBar.open('Erro ao copiar o script.', 'Fechar', { duration: 3000, panelClass: ['error-snackbar'] });
     });
+  }
+
+  /**
+   * Atualiza os campos de consulta de DMVPN, Concentrador e o valor do placeholder <DMVPN_COM_LOOPBACK10>
+   */
+  atualizarConsultaDMVPN(): void {
+    const topologia = this.getControl('topologia').value;
+    const operadora = this.getControl('operadora').value;
+    const ipLoopback10 = this.getControl('ipLoopback10').value;
+    if (topologia === 'Tipo 2' && this.operadoraInfo[operadora]) {
+      this.dmvpnConsulta = this.operadoraInfo[operadora].dmvpn;
+      this.concentradorConsulta = this.operadoraInfo[operadora].concentrador;
+      // Monta o IP do placeholder <DMVPN_COM_LOOPBACK10>
+      if (ipLoopback10 && this.ipv4Pattern.test(ipLoopback10)) {
+        const dmvpnOctetos = this.dmvpnConsulta.split('.');
+        const loopbackOctetos = ipLoopback10.split('.');
+        if (dmvpnOctetos.length === 4 && loopbackOctetos.length === 4) {
+          this.dmvpnComLoopback10 = `${dmvpnOctetos[0]}.${dmvpnOctetos[1]}.${loopbackOctetos[2]}.${loopbackOctetos[3]}`;
+        } else {
+          this.dmvpnComLoopback10 = '';
+        }
+      } else {
+        this.dmvpnComLoopback10 = '';
+      }
+    } else {
+      this.dmvpnConsulta = '';
+      this.concentradorConsulta = '';
+      this.dmvpnComLoopback10 = '';
+    }
   }
 }

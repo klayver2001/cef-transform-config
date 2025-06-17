@@ -1,41 +1,36 @@
-BGP_<%= codigoUl %>_LinkOI
-
-CODIGO UL: <%= codigoUl %>
-IP LOOPBACK: <%= ipLoopback10 %>
-IP REDE VLAN: <%= ipRedeVlan %>
-IP REDE VLAN +1: <%= ipRedeVlan1 %>
-IP REDE VLAN +3: <%= ipRedeVlan3 %>
-IP REDE SWITCH: <%= ipRedeSwitch %>
-IP SWITCH ROUTER: <%= ipSwitchRouter %>
-IP SWITCH VIP: <%= ipSwitchVip %>
-IP LOOPBACK PRIMARIO: <%= ipLoopbackPrimario %>
-IP SWITCH: <%= ipSwitch %>
-
-CONCENTRADOR2: <%= concentrador2 %>
-CONCENTRADOR1: <%= concentrador1 %>
-
-DMVPN: <%= dmVpn %>
-
-
-<INICIO DMVPN><3OCT LOOPBACK 10>
-ex inicio dmvpn:  41.50 + 10.20 ip loopback 10 
-
-tim1
-<IP DMVPN>, "41.50.255.81"
-<CONCENTRADOR DMVPN>, "10.98.0.81"
-     
-tim2
-<IP DMVPN>, "42.50.255.82"
-<CONCENTRADOR DMVPN>, "10.98.0.82"
-     
-arqia
-<IP DMVPN>, "18.50.255.83"
-<CONCENTRADOR DMVPN>, "10.98.0.83"
-     
-vivo
-<IP DMVPN>, "15.50.255.80"
-<CONCENTRADOR DMVPN>, "10.98.0.80"
- 
-
-
-
+Aqui está a lista completa e padronizada de placeholders que você pode (e deve) usar nos seus templates .ejs do backend, conforme a estrutura atual do sistema:
+Identidade e Códigos
+<%= codigoUl %> — Código UL
+Loopbacks
+<%= ipLoopbackPrim %> — IP Loopback Primário
+<%= ipLoopback10 %> — IP Loopback 10
+VLANs e Switches
+<%= ipRedeVlan %> — IP Rede VLAN
+<%= ipRedeVlan1 %> — IP Rede VLAN +1
+<%= ipRedeVlan3 %> — IP Rede VLAN +3
+<%= ipRedeSwitch %> — IP Rede Switch
+<%= ipSwitch %> — IP Switch
+<%= ipSwitchRouter %> — IP Switch Router
+<%= ipSwitchVip %> — IP Switch VIP
+WAN/BKP
+<%= ipWanBkp %> — IP WAN BKP
+<%= ipWanBkp1 %> — IP WAN BKP +1
+<%= ipWanBkp2 %> — IP WAN BKP +2
+DMVPN e Concentrador
+<%= ipDmvpn %> — IP DMVPN (sempre use este para DMVPN)
+<%= concentradorDmvpn %> — IP do Concentrador DMVPN (sempre use este para concentrador)
+Operadora
+<%= operadora %> — Nome da operadora selecionada
+Huawei
+<%= verhuawei1 %> — Bloco de configuração Huawei V2R7/V2R10 (se aplicável)
+<%= verhuawei2 %> — Bloco de configuração Huawei V2R7/V2R10 (se aplicável)
+Placeholder Especial
+<DMVPN_COM_LOOPBACK10>
+Descrição: Substituído automaticamente pelo IP DMVPN da operadora, mas com os dois últimos octetos do IP Loopback 10.
+Exemplo:
+Se ipDmvpn = 41.50.255.81 e ipLoopback10 = 10.50.161.96,
+<DMVPN_COM_LOOPBACK10> será substituído por 41.50.161.96.
+Importante:
+Não use mais dmVpn, concentrador1, concentrador2, ipLoopbackPrimario ou outros nomes antigos.
+Sempre use os nomes acima para garantir compatibilidade entre frontend, backend e templates.
+Se precisar de exemplos de uso ou quiser revisar um template específico, só avisar!

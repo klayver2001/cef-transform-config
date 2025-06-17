@@ -1,5 +1,5 @@
 !
-hostname <CODIGO UL>_RT02
+hostname <%= codigoUl %>_RT02
 !
 aaa new-model
 !
@@ -25,27 +25,15 @@ no ipv6 cef
 multilink bundle-name authenticated
 !
 username sysop privilege 15 password 0 PDOc8N93!XNtREFx$
-!
-interface Loopback1
-description Loopback Gerencia Caixa
-ip address <%= ipLoopbackPrimario %> 255.255.255.255
+username sysop_oi privilege 15 password 0 @C0ns0rc10
 !
 interface Loopback10
 description Loopback Gerencia Caixa
 ip address <%= ipLoopback10 %> 255.255.255.255
 !
-interface Embedded-Service-Engine0/0
-no ip address
-shutdown
-!
 interface GigabitEthernet0/0
-description REDE LAN UL - Terminais
-ip address <%= ipRedeVlan3 %> 255.255.255.240
-ip address <%= ipSwitchRouter %> 255.255.255.248 secondary
-vrrp 1 ip <%= ipRedeVlan1 %>
-vrrp 2 ip <%= ipSwitchVip %>
-ip helper-address 172.31.248.215
-ip helper-address 172.31.252.215
+description Conectado ao Roteador OI
+ip address 192.168.248.254 255.255.255.252
 duplex auto
 speed auto
 no shut
@@ -66,13 +54,13 @@ ip route 10.98.0.84 255.255.255.255 192.168.10.254
 !
 interface Tunnel0
 bandwidth 512
-ip address <INICIO DMVPN><3OCT LOOPBACK 10> 255.248.0.0
+ip address <DMVPN_COM_LOOPBACK10> 255.248.0.0
 no ip redirects
-ip nhrp map multicast <%= concentrador1 %>
-ip nhrp map <%= dmVpn %> <%= concentrador1 %>
+ip nhrp map multicast  <%= concentradorDmvpn %>
+ip nhrp map <%= ipDmvpn %> <%= concentradorDmvpn %>
 ip nhrp network-id 1
 ip nhrp holdtime 90
-ip nhrp nhs <%= dmVpn %>
+ip nhrp nhs <%= ipDmvpn %>
 delay 1000
 tunnel source GigabitEthernet0/1
 tunnel mode gre multipoint
@@ -84,23 +72,37 @@ ip prefix-list OUT_TO_BB seq 30 permit <%= ipRedeSwitch %>/29
 route-map OUT_TO_BB permit 10
 match ip address prefix-list OUT_TO_BB
 
+ip prefix-list STATIC_TO_BGP seq 10 permit 172.16.0.0/16 le 32
+ip prefix-list STATIC_TO_BGP seq 20 permit 172.17.0.0/16 le 32
+ip prefix-list STATIC_TO_BGP seq 30 permit 172.18.0.0/16 le 32
+ip prefix-list STATIC_TO_BGP seq 40 permit 172.24.0.0/16 le 32
+ip prefix-list STATIC_TO_BGP seq 50 permit 172.27.0.0/16 le 32
+ip prefix-list STATIC_TO_BGP seq 60 permit 172.31.0.0/16 le 32
+
+route-map STATIC_TO_BGP permit 10
+match ip address prefix-list STATIC_TO_BGP
+
 router bgp 64765
 bgp router-id <%= ipLoopback10 %>
 bgp log-neighbor-changes
 timers bgp 10 30
-neighbor <%= dmVpn %> remote-as 65055
+neighbor <%= ipDmvpn %> remote-as 65055
+neighbor 192.168.248.253 remote-as 65002
 !
 address-family ipv4
 network <%= ipLoopback10 %> mask 255.255.255.255
 network <%= ipRedeVlan %> mask 255.255.255.240
 network <%= ipRedeSwitch %> mask 255.255.255.248
-neighbor <%= dmVpn %> activate
-neighbor <%= dmVpn %> soft-reconfiguration inbound
-neighbor <%= dmVpn %> route-map OUT_TO_BB out
+neighbor <%= ipDmvpn %> activate
+neighbor <%= ipDmvpn %> soft-reconfiguration inbound
+neighbor <%= ipDmvpn %> route-map OUT_TO_BB out
+neighbor 192.168.248.253 activate
+neighbor 192.168.248.253 soft-reconfiguration inbound
+neighbor 192.168.248.253 route-map STATIC_TO_BGP out
 exit-address-family
 
 ip sla 1
-icmp-echo 10.98.0.1 source-interface Loopback1
+icmp-echo 10.98.0.1 source-interface Loopback10
 frequency 5
 ip sla schedule 1 life forever start-time now
 !
@@ -109,17 +111,19 @@ access-list 50 permit 172.31.253.0 0.0.0.255
 access-list 50 permit 200.218.181.0 0.0.0.255
 access-list 50 deny any log
 !
-snmp-server group GRP_LOTERICOS v3 auth access 50
+snmp-server group GRP_LOTERICOS v2c write lotericos 
+snmp-server group GRP_LOTERICOS v3 auth write lotericos
+snmp-server group GRP_LOTERICOS v3 priv write lotericos
+snmp-server user lotericos GRP_LOTERICOS v3 auth sha Consorcio12# priv des lotericos
 snmp-server view lotericos iso included
-snmp-server user lotericos GRP_LOTERICOS v3 auth sha Consorcio12# priv des lotericos 
-snmp-server source-interface trap loopback 10
+snmp-server community lotericos RW 50
+snmp-server trap-source Loopback10
+snmp-server source-interface informs Loopback10
 snmp-server usm cisco
 snmp-server manager
-snmp-server source-interface informs l10
 !
 logging trap notifications
 logging origin-id hostname
-
 logging source-interface Loopback10
 logging host 172.31.249.36 transport udp port 5518
 logging host 172.31.253.36 transport udp port 5518
@@ -137,7 +141,7 @@ access-list 50 deny any log
 !
 control-plane
 !
-banner motd #
+banner login ^C
 RTCS**********************************************************************************
 *                                                                                    *
 *                             #########################                              *
@@ -159,7 +163,7 @@ RTCS****************************************************************************
 *                                                                                    *
 **************************************************************************************
 ^C
-ip tftp source-interface Loopback10
+
 ip domain-name sencinet.com
 crypto key generate rsa
 How many bits in the modulus [512]:
@@ -167,7 +171,7 @@ How many bits in the modulus [512]:
 line con 0
 line aux 0
 line vty 0 4
-transport input ssh
+transport input all
 !
 scheduler allocate 20000 1000
 ntp source Loopback10
@@ -175,5 +179,5 @@ ntp server 172.31.248.66 prefer
 ntp server 172.31.252.66
 ntp server 172.31.248.215
 ntp server 172.31.252.215
-!
+ip tftp source-interface Loopback10
 end
